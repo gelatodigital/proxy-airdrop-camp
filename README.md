@@ -112,19 +112,6 @@ npx hardhat test test/proxy-sponsor-option1.ts --network hardhat
 - **ProxySponsor_OPTION1**: 32 tests covering core functionality
 - **ProxySponsor_OPTION2**: 38 tests covering all features
 
-## Deployment Considerations
-
-### ProxySponsor_OPTION1 (Simplified)
-- **Lower Deployment Cost** - Simpler contract
-- **Minimal Configuration** - Only 1 constructor parameter
-- **Core Features Only** - Focused on airdrops
-- **Best For** - Simple airdrop campaigns, testing, learning
-
-### ProxySponsor_OPTION2 (Full Featured)
-- **Higher Deployment Cost** - More complex contract
-- **More Configuration** - Requires 4 constructor parameters
-- **Advanced Features** - ERC2771 and staking integration
-- **Best For** - Production DeFi applications
 
 ## Security Considerations
 
