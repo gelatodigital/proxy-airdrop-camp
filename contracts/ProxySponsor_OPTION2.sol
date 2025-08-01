@@ -290,12 +290,12 @@ contract ProxySponsor2 is ERC2771Context {
      * @dev Calls the external stake contract's stake(address,uint256) function
      * @dev Sends msg.value ETH to the stake contract
      */
-    function stakeETH() external payable { 
+    function stakeETH(uint256 amount) external  { 
         if (stakeContractETH == address(0)) revert InvalidStakeContract();
         
         // Call the stake contract's stake function with ETH value
-        (bool success, ) = stakeContractETH.call{value: msg.value}(
-            abi.encodeWithSignature("stake(address,uint256)", _msgSender(), msg.value)
+        (bool success, ) = stakeContractETH.call{(
+            abi.encodeWithSignature("stake(address,uint256)", _msgSender(), amount)
         );
         
         if (!success) revert StakeFailed();
