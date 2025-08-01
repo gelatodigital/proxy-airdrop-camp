@@ -3,13 +3,13 @@ import { ethers } from "hardhat";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { ProxySponsor2 } from "../typechain";
 
-describe("ProxySponsor2 - Hardhat Network Integration Tests", function () {
+describe.only("ProxySponsor2 - Hardhat Network Integration Tests", function () {
   let owner: HardhatEthersSigner;
-  let dedicatedMsgSender: HardhatEthersSigner;
+  let dedicatedMsgSender: any;
   let user1: HardhatEthersSigner;
   let user2: HardhatEthersSigner;
   let receiver: HardhatEthersSigner;
-  let proxySponsor: ProxySponsor2;
+  let proxySponsor: any;
   let proxySponsorAddress: string;
 
   // Mock contract addresses for testing
@@ -18,7 +18,18 @@ describe("ProxySponsor2 - Hardhat Network Integration Tests", function () {
   let mockTrustedForwarder: string;
 
   beforeEach(async function () {
-    [owner, dedicatedMsgSender, user1, user2, receiver] = await ethers.getSigners();
+    [owner, user1, user2, receiver] = await ethers.getSigners();
+    
+    // Impersonate the specific dedicated message sender address
+    const dedicatedMsgSenderAddress = "0xa546E413a8A8D16DdbcaF0A066f0967484D35be9";
+    await ethers.provider.send("hardhat_impersonateAccount", [dedicatedMsgSenderAddress]);
+    dedicatedMsgSender = await ethers.getSigner(dedicatedMsgSenderAddress);
+    
+    // Fund the impersonated account with some ETH for gas
+    await owner.sendTransaction({
+      to: dedicatedMsgSenderAddress,
+      value: ethers.parseEther("10.0")
+    });
     
     // Create mock addresses for stake contracts and trusted forwarder
     mockUSDCStakeContract = await user1.getAddress();
@@ -28,7 +39,7 @@ describe("ProxySponsor2 - Hardhat Network Integration Tests", function () {
     // Deploy ProxySponsor2 contract with current state
     const ProxySponsorFactory = await ethers.getContractFactory("ProxySponsor2");
     proxySponsor = await ProxySponsorFactory.deploy(
-      await dedicatedMsgSender.getAddress(),
+      dedicatedMsgSenderAddress,
       mockTrustedForwarder,
       mockUSDCStakeContract,
       mockETHStakeContract
@@ -67,6 +78,12 @@ describe("ProxySponsor2 - Hardhat Network Integration Tests", function () {
     it("should have correct contract balance after deployment", async function () {
       const balance = await ethers.provider.getBalance(proxySponsorAddress);
       expect(balance).to.equal(0);
+    });
+
+    it("should use the impersonated dedicated message sender address", async function () {
+      const expectedAddress = "0xa546E413a8A8D16DdbcaF0A066f0967484D35be9";
+      expect(await proxySponsor.dedicatedMsgSender()).to.equal(expectedAddress);
+      expect(await dedicatedMsgSender.getAddress()).to.equal(expectedAddress);
     });
   });
 
@@ -328,7 +345,7 @@ describe("ProxySponsor2 - Hardhat Network Integration Tests", function () {
     it("should validate stake contract addresses", async function () {
       // Deploy contract with zero stake contract addresses
       const ProxySponsorFactory = await ethers.getContractFactory("ProxySponsor2");
-      const newProxySponsor = await ProxySponsorFactory.deploy(
+      const newProxySponsor: any = await ProxySponsorFactory.deploy(
         await dedicatedMsgSender.getAddress(),
         mockTrustedForwarder,
         ethers.ZeroAddress, // zero USDC stake contract
