@@ -308,7 +308,7 @@ describe("ProxySponsor2 (Full Featured)", function () {
       );
       
       await expect(
-        newProxySponsor.connect(user).stakeETH({ value: ethers.parseEther("0.1") })
+        newProxySponsor.connect(user).stakeETH(ethers.parseEther("0.1"))
       ).to.be.revertedWithCustomError(newProxySponsor, "InvalidStakeContract");
     });
   });
