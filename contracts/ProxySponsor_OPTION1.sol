@@ -25,6 +25,12 @@ contract ProxySponsor1 {
     /// @notice Coefficient to multiply gas costs (in basis points, 10000 = 100%)
     uint256 public gasCostCoefficient;
     
+    /// @notice Gas units for stake operation
+    uint256 public gasStake;
+    
+    /// @notice Gas units for approve operation
+    uint256 public gasApprove;
+    
     // Custom errors
     /// @notice Thrown when a function is called by someone other than the owner
     error OnlyOwner();
@@ -56,6 +62,12 @@ contract ProxySponsor1 {
     /// @notice Thrown when an invalid gas cost coefficient is provided
     error InvalidGasCostCoefficient();
     
+    /// @notice Thrown when an invalid gas price (zero) is provided
+    error InvalidGasPrice();
+    
+    /// @notice Thrown when an invalid gas value (zero) is provided
+    error InvalidGasValue();
+    
     /// @notice Modifier to restrict function access to the contract owner only
     modifier onlyOwner() {
         if (msg.sender != owner) revert OnlyOwner();
@@ -79,6 +91,8 @@ contract ProxySponsor1 {
        dedicatedMsgSender = _dedicatedMsgSender;
        minimumTransferValue = 0.001 ether; // Default minimum value
        gasCostCoefficient = 10500; // Default 105% (5% increase)
+       gasStake = 140000; // Default gas for stake operation
+       gasApprove = 40000; // Default gas for approve operation
     }
     
     /**
@@ -111,6 +125,26 @@ contract ProxySponsor1 {
     }
     
     /**
+     * @notice Set the gas units for stake operation
+     * @param _gasStake New gas units for stake operation
+     * @dev Only callable by the contract owner
+     */
+    function setGasStake(uint256 _gasStake) external onlyOwner {
+        if (_gasStake == 0) revert InvalidGasValue();
+        gasStake = _gasStake;
+    }
+    
+    /**
+     * @notice Set the gas units for approve operation
+     * @param _gasApprove New gas units for approve operation
+     * @dev Only callable by the contract owner
+     */
+    function setGasApprove(uint256 _gasApprove) external onlyOwner {
+        if (_gasApprove == 0) revert InvalidGasValue();
+        gasApprove = _gasApprove;
+    }
+    
+    /**
      * @notice Transfer ownership of the contract to a new address
      * @param _newOwner Address of the new owner
      * @dev Only callable by the current owner
@@ -125,14 +159,12 @@ contract ProxySponsor1 {
     
     /**
      * @notice Calculate the required amount for an airdrop based on gas costs and minimum value
+     * @param gasPrice The gas price to use for calculations
      * @return The required amount in wei (maximum of gas cost or minimum transfer value)
      * @dev Internal helper function for airdrop calculations
      * @dev Applies gas cost coefficient to adjust the calculated amount
      */
-    function _calculateRequiredAmount() internal view returns (uint256) {
-        uint256 gasStake = 140000;
-        uint256 gasApprove = 40000;
-        uint256 gasPrice = tx.gasprice;
+    function _calculateRequiredAmount(uint256 gasPrice) internal view returns (uint256) {
         uint256 totalGasCost = (gasStake + gasApprove) * gasPrice;
         
         // Apply coefficient to gas cost (in basis points)
@@ -161,17 +193,20 @@ contract ProxySponsor1 {
     /**
      * @notice Perform an airdrop of ETH to a receiver
      * @param receiver Address of the receiver to airdrop ETH to
+     * @param gasPrice The gas price to use for calculations (in wei)
      * @dev Only callable by the dedicated message sender
      * @dev Calculates required amount based on gas costs and minimum transfer value
      * @dev Only transfers the difference if receiver already has partial balance
      */
     function airdrop(
-        address receiver
+        address receiver,
+        uint256 gasPrice
     ) external onlyDedicatedMsgSender {
         if (address(this).balance == 0) revert InsufficientBalance();
         if (receiver == address(0)) revert InvalidReceiver();
+        if (gasPrice == 0) revert InvalidGasPrice();
         
-        uint256 requiredAmount = _calculateRequiredAmount();
+        uint256 requiredAmount = _calculateRequiredAmount(gasPrice);
         uint256 transferAmount = _calculateTransferAmount(receiver, requiredAmount);
        
         if (address(this).balance < transferAmount) revert InsufficientBalance();

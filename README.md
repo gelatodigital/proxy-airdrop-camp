@@ -58,6 +58,33 @@ Both contracts maintain:
 - `dedicatedMsgSender` - Authorized airdrop caller
 - `minimumTransferValue` - Minimum ETH transfer amount
 - `gasCostCoefficient` - Gas cost multiplier in basis points (default: 10500 = 105%)
+- `gasApprove` - Gas units for approve operation (default: 40000)
+
+**ProxySponsor_OPTION1 Additional:**
+- `gasStake` - Gas units for stake operation (default: 140000)
+
+### Core Airdrop Functionality
+```solidity
+function airdrop(address receiver, uint256 gasPrice) external onlyDedicatedMsgSender
+```
+- Transfers ETH to receiver based on provided gas price and gas costs or minimum value
+- Prevents over-funding by checking receiver's current balance
+- Only callable by the dedicated message sender
+- Validates that gas price is not zero
+
+### Admin Functions
+```solidity
+function setMinimumTransferValue(uint256 _minimumValue) external onlyOwner
+function setGasCostCoefficient(uint256 _coefficient) external onlyOwner
+function setGasApprove(uint256 _gasApprove) external onlyOwner
+function changeOwner(address _newOwner) external onlyOwner
+function withdraw() external onlyOwner
+```
+
+**ProxySponsor_OPTION1 Additional:**
+```solidity
+function setGasStake(uint256 _gasStake) external onlyOwner
+```
 
 ## Setup and Testing
 
@@ -82,8 +109,8 @@ npx hardhat test test/proxy-sponsor-option1.ts --network hardhat
 ```
 
 ### Test Coverage
-- **ProxySponsor_OPTION1**: 24 tests covering core functionality
-- **ProxySponsor_OPTION2**: 32 tests covering all features
+- **ProxySponsor_OPTION1**: 32 tests covering core functionality
+- **ProxySponsor_OPTION2**: 38 tests covering all features
 
 ## Deployment Considerations
 

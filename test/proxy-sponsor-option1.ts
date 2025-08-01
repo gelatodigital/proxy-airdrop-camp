@@ -63,9 +63,7 @@ describe("ProxySponsor1 (Airdrop Only)", function () {
       
       // Send airdrop with 5 gwei gas price
       const gasPrice = ethers.parseUnits("5", "gwei");
-      await proxySponsor.connect(dedicatedMsgSender).airdrop(freshReceiverAddress, {
-        gasPrice: gasPrice
-      });
+      await proxySponsor.connect(dedicatedMsgSender).airdrop(freshReceiverAddress, gasPrice);
       
       const finalReceiverBalance = await ethers.provider.getBalance(freshReceiverAddress);
       expect(finalReceiverBalance).to.be.gt(initialReceiverBalance);
@@ -73,9 +71,10 @@ describe("ProxySponsor1 (Airdrop Only)", function () {
 
     it("should revert if called by non-dedicated message sender", async function () {
       const receiverAddress = await receiver.getAddress();
+      const gasPrice = ethers.parseUnits("5", "gwei");
       
       await expect(
-        proxySponsor.connect(user).airdrop(receiverAddress)
+        proxySponsor.connect(user).airdrop(receiverAddress, gasPrice)
       ).to.be.revertedWithCustomError(proxySponsor, "OnlyDedicatedMsgSender");
     });
 
@@ -84,16 +83,25 @@ describe("ProxySponsor1 (Airdrop Only)", function () {
       await proxySponsor.connect(owner).withdraw();
       
       const receiverAddress = await receiver.getAddress();
+      const gasPrice = ethers.parseUnits("5", "gwei");
       
       await expect(
-        proxySponsor.connect(dedicatedMsgSender).airdrop(receiverAddress)
+        proxySponsor.connect(dedicatedMsgSender).airdrop(receiverAddress, gasPrice)
       ).to.be.revertedWithCustomError(proxySponsor, "InsufficientBalance");
     });
 
     it("should revert if receiver is zero address", async function () {
+      const gasPrice = ethers.parseUnits("5", "gwei");
       await expect(
-        proxySponsor.connect(dedicatedMsgSender).airdrop(ethers.ZeroAddress)
+        proxySponsor.connect(dedicatedMsgSender).airdrop(ethers.ZeroAddress, gasPrice)
       ).to.be.revertedWithCustomError(proxySponsor, "InvalidReceiver");
+    });
+
+    it("should revert if gas price is zero", async function () {
+      const receiverAddress = await receiver.getAddress();
+      await expect(
+        proxySponsor.connect(dedicatedMsgSender).airdrop(receiverAddress, 0)
+      ).to.be.revertedWithCustomError(proxySponsor, "InvalidGasPrice");
     });
   });
 
@@ -243,9 +251,7 @@ describe("ProxySponsor1 (Airdrop Only)", function () {
       
       // Perform airdrop with 5 gwei gas price
       const gasPrice = ethers.parseUnits("5", "gwei");
-      await proxySponsor.connect(dedicatedMsgSender).airdrop(freshReceiverAddress, {
-        gasPrice: gasPrice
-      });
+      await proxySponsor.connect(dedicatedMsgSender).airdrop(freshReceiverAddress, gasPrice);
       
       const finalReceiverBalance = await ethers.provider.getBalance(freshReceiverAddress);
       const transferredAmount = finalReceiverBalance - initialReceiverBalance;
@@ -256,6 +262,58 @@ describe("ProxySponsor1 (Airdrop Only)", function () {
 
     it("should use default coefficient (105%) on deployment", async function () {
       expect(await proxySponsor.gasCostCoefficient()).to.equal(10500);
+    });
+  });
+
+  describe("setGasStake()", function () {
+    it("should allow owner to set gas stake value", async function () {
+      const newGasStake = 150000;
+      await proxySponsor.connect(owner).setGasStake(newGasStake);
+      expect(await proxySponsor.gasStake()).to.equal(newGasStake);
+    });
+
+    it("should revert if called by non-owner", async function () {
+      const newGasStake = 150000;
+      await expect(
+        proxySponsor.connect(user).setGasStake(newGasStake)
+      ).to.be.revertedWithCustomError(proxySponsor, "OnlyOwner");
+    });
+
+    it("should revert if gas stake is zero", async function () {
+      await expect(
+        proxySponsor.connect(owner).setGasStake(0)
+      ).to.be.revertedWithCustomError(proxySponsor, "InvalidGasValue");
+    });
+  });
+
+  describe("setGasApprove()", function () {
+    it("should allow owner to set gas approve value", async function () {
+      const newGasApprove = 50000;
+      await proxySponsor.connect(owner).setGasApprove(newGasApprove);
+      expect(await proxySponsor.gasApprove()).to.equal(newGasApprove);
+    });
+
+    it("should revert if called by non-owner", async function () {
+      const newGasApprove = 50000;
+      await expect(
+        proxySponsor.connect(user).setGasApprove(newGasApprove)
+      ).to.be.revertedWithCustomError(proxySponsor, "OnlyOwner");
+    });
+
+    it("should revert if gas approve is zero", async function () {
+      await expect(
+        proxySponsor.connect(owner).setGasApprove(0)
+      ).to.be.revertedWithCustomError(proxySponsor, "InvalidGasValue");
+    });
+  });
+
+  describe("Default Gas Values", function () {
+    it("should use default gas stake (140000) on deployment", async function () {
+      expect(await proxySponsor.gasStake()).to.equal(140000);
+    });
+
+    it("should use default gas approve (40000) on deployment", async function () {
+      expect(await proxySponsor.gasApprove()).to.equal(40000);
     });
   });
 }); 
