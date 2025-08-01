@@ -316,4 +316,32 @@ describe("ProxySponsor1 (Airdrop Only)", function () {
       expect(await proxySponsor.gasApprove()).to.equal(40000);
     });
   });
+
+  describe("changeDedicatedMsgSender()", function () {
+    it("should allow owner to change dedicated message sender", async function () {
+      const newDedicatedMsgSender = await user.getAddress();
+      await proxySponsor.connect(owner).changeDedicatedMsgSender(newDedicatedMsgSender);
+      expect(await proxySponsor.dedicatedMsgSender()).to.equal(newDedicatedMsgSender);
+    });
+
+    it("should revert if called by non-owner", async function () {
+      const newDedicatedMsgSender = await user.getAddress();
+      await expect(
+        proxySponsor.connect(user).changeDedicatedMsgSender(newDedicatedMsgSender)
+      ).to.be.revertedWithCustomError(proxySponsor, "OnlyOwner");
+    });
+
+    it("should revert if new dedicated message sender is zero address", async function () {
+      await expect(
+        proxySponsor.connect(owner).changeDedicatedMsgSender(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(proxySponsor, "InvalidDedicatedMsgSender");
+    });
+
+    it("should revert if new dedicated message sender is same as current", async function () {
+      const currentDedicatedMsgSender = await dedicatedMsgSender.getAddress();
+      await expect(
+        proxySponsor.connect(owner).changeDedicatedMsgSender(currentDedicatedMsgSender)
+      ).to.be.revertedWithCustomError(proxySponsor, "InvalidDedicatedMsgSender");
+    });
+  });
 }); 

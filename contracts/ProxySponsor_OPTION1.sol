@@ -68,6 +68,9 @@ contract ProxySponsor1 {
     /// @notice Thrown when an invalid gas value (zero) is provided
     error InvalidGasValue();
     
+    /// @notice Thrown when trying to set an invalid new dedicated message sender address
+    error InvalidDedicatedMsgSender();
+    
     /// @notice Modifier to restrict function access to the contract owner only
     modifier onlyOwner() {
         if (msg.sender != owner) revert OnlyOwner();
@@ -142,6 +145,17 @@ contract ProxySponsor1 {
     function setGasApprove(uint256 _gasApprove) external onlyOwner {
         if (_gasApprove == 0) revert InvalidGasValue();
         gasApprove = _gasApprove;
+    }
+    
+    /**
+     * @notice Change the dedicated message sender address
+     * @param _newDedicatedMsgSender Address of the new dedicated message sender
+     * @dev Only callable by the contract owner
+     */
+    function changeDedicatedMsgSender(address _newDedicatedMsgSender) external onlyOwner {
+        if (_newDedicatedMsgSender == address(0)) revert InvalidDedicatedMsgSender();
+        if (_newDedicatedMsgSender == dedicatedMsgSender) revert InvalidDedicatedMsgSender();
+        dedicatedMsgSender = _newDedicatedMsgSender;
     }
     
     /**

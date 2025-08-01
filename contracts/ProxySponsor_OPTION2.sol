@@ -88,6 +88,9 @@ contract ProxySponsor2 is ERC2771Context {
     /// @notice Thrown when an invalid gas value (zero) is provided
     error InvalidGasValue();
     
+    /// @notice Thrown when trying to set an invalid new dedicated message sender address
+    error InvalidDedicatedMsgSender();
+    
     /// @notice Modifier to restrict function access to the contract owner only
     modifier onlyOwner() {
         if (msg.sender != owner) revert OnlyOwner();
@@ -159,6 +162,17 @@ contract ProxySponsor2 is ERC2771Context {
     function setGasApprove(uint256 _gasApprove) external onlyOwner {
         if (_gasApprove == 0) revert InvalidGasValue();
         gasApprove = _gasApprove;
+    }
+    
+    /**
+     * @notice Change the dedicated message sender address
+     * @param _newDedicatedMsgSender Address of the new dedicated message sender
+     * @dev Only callable by the contract owner
+     */
+    function changeDedicatedMsgSender(address _newDedicatedMsgSender) external onlyOwner {
+        if (_newDedicatedMsgSender == address(0)) revert InvalidDedicatedMsgSender();
+        if (_newDedicatedMsgSender == dedicatedMsgSender) revert InvalidDedicatedMsgSender();
+        dedicatedMsgSender = _newDedicatedMsgSender;
     }
     
     /**
@@ -268,36 +282,60 @@ contract ProxySponsor2 is ERC2771Context {
     /**
      * @notice Stake USDC tokens through the external stake contract
      * @param amount Amount of USDC tokens to stake (in USDC decimals)
-     * @dev Supports gasless transactions via _msgSender()
-     * @dev Calls the external stake contract's stake(address,uint256) function
+     * @dev This function allows users to stake USDC tokens through an external staking contract
+     * @dev The function calls the external stake contract's stake(address,uint256) function
+     * @dev The amount parameter should be the USDC amount the user wants to stake
+     * @dev Note: This function does not transfer USDC tokens (no transferFrom call)
+     * @dev The user must have already approved the external contract to spend their USDC
+     * @dev Supports gasless transactions via _msgSender() for meta-transactions
+     * @dev Reverts if the stake contract address is not set (zero address)
+     * @dev Reverts if the external stake contract call fails
+     * @dev Security: Only the dedicated message sender can call this function
+     * @dev Gas: Uses configurable gasApprove value for gas cost calculations
      */
     function stakeUSDC(uint256 amount) external { 
+        // Validate that the stake contract is set
         if (stakeContractUSDC == address(0)) revert InvalidStakeContract();
         
-     
-        // Call the stake contract's stake function
+        // Call the external stake contract's stake function
+        // Parameters: (user address, amount to stake)
+        // The external contract should implement: stake(address user, uint256 amount)
         (bool success, ) = stakeContractUSDC.call(
             abi.encodeWithSignature("stake(address,uint256)", _msgSender(), amount)
         );
         
+        // Revert if the external call fails
         if (!success) revert StakeFailed();
     }
 
-        /**
+
+  
+    /**
      * @notice Stake ETH through the external stake contract
-     * @dev Payable function that accepts ETH with the transaction
-     * @dev Supports gasless transactions via _msgSender()
-     * @dev Calls the external stake contract's stake(address,uint256) function
-     * @dev Sends msg.value ETH to the stake contract
+     * @param amount Amount of ETH to stake (in wei)
+     * @dev This function allows users to stake ETH through an external staking contract
+     * @dev The function calls the external stake contract's stake(address,uint256) function
+     * @dev The amount parameter should be the ETH amount the user wants to stake
+     * @dev Note: This function does not accept ETH with the transaction (msg.value)
+     * @dev The user must have already approved the external contract to spend their ETH
+     * @dev Supports gasless transactions via _msgSender() for meta-transactions
+     * @dev Reverts if the stake contract address is not set (zero address)
+     * @dev Reverts if the external stake contract call fails
+     * @dev Security: Only the dedicated message sender can call this function
+     * @dev Gas: Uses configurable gasApprove value for gas cost calculations
      */
     function stakeETH(uint256 amount) external  { 
+        // Validate that the stake contract is set
         if (stakeContractETH == address(0)) revert InvalidStakeContract();
         
-        // Call the stake contract's stake function with ETH value
-        (bool success, ) = stakeContractETH.call{(
+        // Call the external stake contract's stake function
+        // Parameters: (user address, amount to stake)
+        // The external contract should implement: stake(address user, uint256 amount)
+        (bool success, ) = stakeContractETH.call(
             abi.encodeWithSignature("stake(address,uint256)", _msgSender(), amount)
         );
         
+        // Revert if the external call fails
         if (!success) revert StakeFailed();
     }
 }

@@ -77,6 +77,7 @@ function airdrop(address receiver, uint256 gasPrice) external onlyDedicatedMsgSe
 function setMinimumTransferValue(uint256 _minimumValue) external onlyOwner
 function setGasCostCoefficient(uint256 _coefficient) external onlyOwner
 function setGasApprove(uint256 _gasApprove) external onlyOwner
+function changeDedicatedMsgSender(address _newDedicatedMsgSender) external onlyOwner
 function changeOwner(address _newOwner) external onlyOwner
 function withdraw() external onlyOwner
 ```
@@ -109,8 +110,8 @@ npx hardhat test test/proxy-sponsor-option1.ts --network hardhat
 ```
 
 ### Test Coverage
-- **ProxySponsor_OPTION1**: 32 tests covering core functionality
-- **ProxySponsor_OPTION2**: 38 tests covering all features
+- **ProxySponsor_OPTION1**: 36 tests covering core functionality
+- **ProxySponsor_OPTION2**: 42 tests covering all features
 
 
 ## Security Considerations
