@@ -25,7 +25,6 @@
     "@gelatonetwork/automate-sdk": "3.0.10",
     "@gelatonetwork/relay-context": "^4.1.1",
     "@gelatonetwork/relay-sdk": "5.5.6",
-    "@gelatonetwork/web3-functions-sdk": "2.4.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
     "@nomicfoundation/hardhat-ethers": "3.0.5",
     "@nomicfoundation/hardhat-network-helpers": "1.0.12",
@@ -61,5 +60,8 @@
     "*.*{js,json,md,ts,sol,yml,yaml}": "prettier --write",
     "*.*{ts,js}": "eslint -c .eslintrc.json"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
+  "dependencies": {
+    "@gelatonetwork/web3-functions-sdk": "^2.4.4"
+  }
 }
