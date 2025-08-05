@@ -35,14 +35,8 @@ contract ProxySponsor2 is ERC2771Context {
     /// @notice Coefficient to multiply gas costs (in basis points, 10000 = 100%)
     uint256 public gasCostCoefficient;
     
-    /// @notice Gas units for approve operation
-    uint256 public gasApprove;
-    
-    /// @notice Address of the USDC staking contract
-    address public stakeContractUSDC;
-    
-    /// @notice Address of the ETH staking contract
-    address public stakeContractETH;
+    /// @notice Gas units for approve and stake operation
+    uint256 public totalGasStaking;
     
     // Custom errors
     /// @notice Thrown when a function is called by someone other than the owner
@@ -107,22 +101,16 @@ contract ProxySponsor2 is ERC2771Context {
      * @notice Constructor to initialize the ProxySponsor contract
      * @param _dedicatedMsgSender Address authorized to perform airdrops
      * @param _trustedForwarder Address of the trusted forwarder for gasless transactions
-     * @param _stakeContractUSDC Address of the USDC staking contract
-     * @param _stakeContractETH Address of the ETH staking contract
      */
     constructor(
         address _dedicatedMsgSender,
-        address _trustedForwarder,
-        address _stakeContractUSDC,
-        address _stakeContractETH
+        address _trustedForwarder
     ) ERC2771Context(_trustedForwarder) {
        owner = msg.sender;
        dedicatedMsgSender = _dedicatedMsgSender;
        minimumTransferValue = 0.001 ether; // Default minimum value
        gasCostCoefficient = 10500; // Default 105% (5% increase)
-       gasApprove = 40000; // Default gas for approve operation
-       stakeContractUSDC = _stakeContractUSDC;
-       stakeContractETH = _stakeContractETH;
+       totalGasStaking = 180000; // Default gas for approve and stake operation
     }
     
     /**
@@ -155,13 +143,13 @@ contract ProxySponsor2 is ERC2771Context {
     }
     
     /**
-     * @notice Set the gas units for approve operation
-     * @param _gasApprove New gas units for approve operation
+     * @notice Set the gas units for approve and stake operation
+     * @param _gasStake New gas units for approve and stake operation
      * @dev Only callable by the contract owner
      */
-    function setGasApprove(uint256 _gasApprove) external onlyOwner {
-        if (_gasApprove == 0) revert InvalidGasValue();
-        gasApprove = _gasApprove;
+    function setGasStaking(uint256 _gasStake) external onlyOwner {
+        if (_gasStake == 0) revert InvalidGasValue();
+        totalGasStaking = _gasStake;
     }
     
     /**
@@ -185,26 +173,6 @@ contract ProxySponsor2 is ERC2771Context {
         if (_newOwner == owner) revert InvalidNewOwner();
         owner = _newOwner;
     }
-
-    /**
-     * @notice Change the USDC stake contract address
-     * @param _newStakeContractUSDC Address of the new USDC stake contract
-     * @dev Only callable by the contract owner
-     */
-    function changeStakeContractUSDC(address _newStakeContractUSDC) external onlyOwner {
-        if (_newStakeContractUSDC == address(0)) revert InvalidStakeContract();
-        stakeContractUSDC = _newStakeContractUSDC;
-    }
-
-    /**
-     * @notice Change the ETH stake contract address
-     * @param _newStakeContractETH Address of the new ETH stake contract
-     * @dev Only callable by the contract owner
-     */
-    function changeStakeContractETH(address _newStakeContractETH) external onlyOwner {
-        if (_newStakeContractETH == address(0)) revert InvalidStakeContract();
-        stakeContractETH = _newStakeContractETH;
-    }
     
     /**
      * @notice Calculate the required amount for an airdrop based on gas costs and minimum value
@@ -214,7 +182,7 @@ contract ProxySponsor2 is ERC2771Context {
      * @dev Applies gas cost coefficient to adjust the calculated amount
      */
     function _calculateRequiredAmount(uint256 gasPrice) internal view returns (uint256) {
-        uint256 totalGasCost = gasApprove * gasPrice;
+        uint256 totalGasCost = totalGasStaking * gasPrice;
         
         // Apply coefficient to gas cost (in basis points)
         uint256 adjustedGasCost = (totalGasCost * gasCostCoefficient) / 10000;
@@ -276,66 +244,5 @@ contract ProxySponsor2 is ERC2771Context {
         
         (bool success, ) = payable(owner).call{value: balance}("");
         if (!success) revert TransferFailed();
-    }
-
-
-    /**
-     * @notice Stake USDC tokens through the external stake contract
-     * @param amount Amount of USDC tokens to stake (in USDC decimals)
-     * @dev This function allows users to stake USDC tokens through an external staking contract
-     * @dev The function calls the external stake contract's stake(address,uint256) function
-     * @dev The amount parameter should be the USDC amount the user wants to stake
-     * @dev Note: This function does not transfer USDC tokens (no transferFrom call)
-     * @dev The user must have already approved the external contract to spend their USDC
-     * @dev Supports gasless transactions via _msgSender() for meta-transactions
-     * @dev Reverts if the stake contract address is not set (zero address)
-     * @dev Reverts if the external stake contract call fails
-     * @dev Security: Only the dedicated message sender can call this function
-     * @dev Gas: Uses configurable gasApprove value for gas cost calculations
-     */
-    function stakeUSDC(uint256 amount) external { 
-        // Validate that the stake contract is set
-        if (stakeContractUSDC == address(0)) revert InvalidStakeContract();
-        
-        // Call the external stake contract's stake function
-        // Parameters: (user address, amount to stake)
-        // The external contract should implement: stake(address user, uint256 amount)
-        (bool success, ) = stakeContractUSDC.call(
-            abi.encodeWithSignature("stake(address,uint256)", _msgSender(), amount)
-        );
-        
-        // Revert if the external call fails
-        if (!success) revert StakeFailed();
-    }
-
-
-  
-    /**
-     * @notice Stake ETH through the external stake contract
-     * @param amount Amount of ETH to stake (in wei)
-     * @dev This function allows users to stake ETH through an external staking contract
-     * @dev The function calls the external stake contract's stake(address,uint256) function
-     * @dev The amount parameter should be the ETH amount the user wants to stake
-     * @dev Note: This function does not accept ETH with the transaction (msg.value)
-     * @dev The user must have already approved the external contract to spend their ETH
-     * @dev Supports gasless transactions via _msgSender() for meta-transactions
-     * @dev Reverts if the stake contract address is not set (zero address)
-     * @dev Reverts if the external stake contract call fails
-     * @dev Security: Only the dedicated message sender can call this function
-     * @dev Gas: Uses configurable gasApprove value for gas cost calculations
-     */
-    function stakeETH(uint256 amount) external  { 
-        // Validate that the stake contract is set
-        if (stakeContractETH == address(0)) revert InvalidStakeContract();
-        
-        // Call the external stake contract's stake function
-        // Parameters: (user address, amount to stake)
-        // The external contract should implement: stake(address user, uint256 amount)
-        (bool success, ) = stakeContractETH.call(
-            abi.encodeWithSignature("stake(address,uint256)", _msgSender(), amount)
-        );
-        
-        // Revert if the external call fails
-        if (!success) revert StakeFailed();
     }
 }
