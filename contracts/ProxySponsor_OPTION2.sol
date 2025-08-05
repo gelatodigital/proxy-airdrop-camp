@@ -69,10 +69,6 @@ contract ProxySponsor2 is ERC2771Context {
     /// @notice Thrown when the stake contract address is not set (zero address)
     error InvalidStakeContract();
     
-    
-    /// @notice Thrown when a staking operation fails
-    error StakeFailed();
-    
     /// @notice Thrown when an invalid gas cost coefficient is provided
     error InvalidGasCostCoefficient();
     
