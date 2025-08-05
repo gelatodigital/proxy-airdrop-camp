@@ -14,17 +14,11 @@ describe("ProxySponsor2 (Full Featured)", function () {
   beforeEach(async function () {
     [owner, dedicatedMsgSender, user, receiver] = await ethers.getSigners();
     
-    // Mock addresses for stake contracts
-    const mockStakeContractUSDC = await user.getAddress(); // Using as mock USDC stake contract address
-    const mockStakeContractETH = await receiver.getAddress(); // Using as mock ETH stake contract address
-    
     // Deploy ProxySponsor2 contract
     const ProxySponsorFactory = await ethers.getContractFactory("ProxySponsor2");
     proxySponsor = await ProxySponsorFactory.deploy(
       await dedicatedMsgSender.getAddress(),
-      await owner.getAddress(), // trusted forwarder
-      mockStakeContractUSDC,
-      mockStakeContractETH
+      await owner.getAddress()
     );
     proxySponsorAddress = await proxySponsor.getAddress();
   });
@@ -237,82 +231,6 @@ describe("ProxySponsor2 (Full Featured)", function () {
     });
   });
 
-  describe("changeStakeContractUSDC()", function () {
-    it("should allow owner to change USDC stake contract", async function () {
-      const newStakeContract = await user.getAddress();
-      await proxySponsor.connect(owner).changeStakeContractUSDC(newStakeContract);
-      expect(await proxySponsor.stakeContractUSDC()).to.equal(newStakeContract);
-    });
-
-    it("should revert if called by non-owner", async function () {
-      const newStakeContract = await user.getAddress();
-      await expect(
-        proxySponsor.connect(user).changeStakeContractUSDC(newStakeContract)
-      ).to.be.revertedWithCustomError(proxySponsor, "OnlyOwner");
-    });
-
-    it("should revert if new stake contract is zero address", async function () {
-      await expect(
-        proxySponsor.connect(owner).changeStakeContractUSDC(ethers.ZeroAddress)
-      ).to.be.revertedWithCustomError(proxySponsor, "InvalidStakeContract");
-    });
-  });
-
-  describe("changeStakeContractETH()", function () {
-    it("should allow owner to change ETH stake contract", async function () {
-      const newStakeContract = await user.getAddress();
-      await proxySponsor.connect(owner).changeStakeContractETH(newStakeContract);
-      expect(await proxySponsor.stakeContractETH()).to.equal(newStakeContract);
-    });
-
-    it("should revert if called by non-owner", async function () {
-      const newStakeContract = await user.getAddress();
-      await expect(
-        proxySponsor.connect(user).changeStakeContractETH(newStakeContract)
-      ).to.be.revertedWithCustomError(proxySponsor, "OnlyOwner");
-    });
-
-    it("should revert if new stake contract is zero address", async function () {
-      await expect(
-        proxySponsor.connect(owner).changeStakeContractETH(ethers.ZeroAddress)
-      ).to.be.revertedWithCustomError(proxySponsor, "InvalidStakeContract");
-    });
-  });
-
-  describe("stakeUSDC()", function () {
-    it("should revert if stake contract is not set", async function () {
-      // Deploy a new contract with zero stake contract address
-      const ProxySponsorFactory = await ethers.getContractFactory("ProxySponsor2");
-      const newProxySponsor = await ProxySponsorFactory.deploy(
-        await dedicatedMsgSender.getAddress(),
-        await owner.getAddress(),
-        ethers.ZeroAddress, // zero USDC stake contract
-        await receiver.getAddress() // mock ETH stake contract
-      );
-      
-      await expect(
-        newProxySponsor.connect(user).stakeUSDC(ethers.parseUnits("100", 6))
-      ).to.be.revertedWithCustomError(newProxySponsor, "InvalidStakeContract");
-    });
-  });
-
-  describe("stakeETH()", function () {
-    it("should revert if stake contract is not set", async function () {
-      // Deploy a new contract with zero ETH stake contract address
-      const ProxySponsorFactory = await ethers.getContractFactory("ProxySponsor2");
-      const newProxySponsor = await ProxySponsorFactory.deploy(
-        await dedicatedMsgSender.getAddress(),
-        await owner.getAddress(),
-        await user.getAddress(), // mock USDC stake contract
-        ethers.ZeroAddress // zero ETH stake contract
-      );
-      
-      await expect(
-        newProxySponsor.connect(user).stakeETH(ethers.parseEther("0.1"))
-      ).to.be.revertedWithCustomError(newProxySponsor, "InvalidStakeContract");
-    });
-  });
-
   describe("Gas Cost Coefficient in Airdrop", function () {
     beforeEach(async function () {
       // Fund the contract
@@ -348,30 +266,30 @@ describe("ProxySponsor2 (Full Featured)", function () {
     });
   });
 
-  describe("setGasApprove()", function () {
+  describe("setGasStaking()", function () {
     it("should allow owner to set gas approve value", async function () {
       const newGasApprove = 50000;
-      await proxySponsor.connect(owner).setGasApprove(newGasApprove);
-      expect(await proxySponsor.gasApprove()).to.equal(newGasApprove);
+      await proxySponsor.connect(owner).setGasStaking(newGasApprove);
+      expect(await proxySponsor.totalGasStaking()).to.equal(newGasApprove);
     });
 
     it("should revert if called by non-owner", async function () {
       const newGasApprove = 50000;
       await expect(
-        proxySponsor.connect(user).setGasApprove(newGasApprove)
+        proxySponsor.connect(user).setGasStaking(newGasApprove)
       ).to.be.revertedWithCustomError(proxySponsor, "OnlyOwner");
     });
 
     it("should revert if gas approve is zero", async function () {
       await expect(
-        proxySponsor.connect(owner).setGasApprove(0)
+        proxySponsor.connect(owner).setGasStaking(0)
       ).to.be.revertedWithCustomError(proxySponsor, "InvalidGasValue");
     });
   });
 
   describe("Default Gas Values", function () {
     it("should use default gas approve (40000) on deployment", async function () {
-      expect(await proxySponsor.gasApprove()).to.equal(40000);
+      expect(await proxySponsor.totalGasStaking()).to.equal(180000);
     });
   });
 
